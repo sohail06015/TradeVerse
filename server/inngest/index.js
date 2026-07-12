@@ -104,92 +104,102 @@ const syncUserUpdation = inngest.createFunction(
 
 // inngest function to send purchase email to the customer
 const sendPurchaseEmail = inngest.createFunction(
-    {id: 'send-purchase-email' },
-    {event: "app/purchase" },
-    async ({event}) =>{
-        const { transaction } = event.data;
+  {
+    id: "send-purchase-email",
+    triggers: [{ event: "app/purchase" }],
+  },
+  async ({ event }) => {
+    const { transaction } = event.data;
 
-        const customer = await prisma.user.findFirst({
-            where: {id: transaction.userId }
-        })
+    const customer = await prisma.user.findFirst({
+      where: { id: transaction.userId },
+    });
 
-        const listing = await prisma.listing.findFirst({
-            where: {id: transaction.listingId }
-        })
+    const listing = await prisma.listing.findFirst({
+      where: { id: transaction.listingId },
+    });
 
-        const credential = await prisma.credential.findFirst({
-            where: {listingId: transaction.listingId }
-        })
+    const credential = await prisma.credential.findFirst({
+      where: { listingId: transaction.listingId },
+    });
 
-        await sendEmail({
-            to: customer.email,
-            subject: "Your credential for the  account you purchased",
-            html: `
-            <h2>  Thank you purchasing account @${listing.username} of ${listing.platform} platform </h2>
-            <p> Here are your credentials for the listing you purchased.
-            </p>
-            <h3> New Credentials </h3>
-            <div>
-            ${credential.updatedCredential.map((cred)=> ` <p> ${cred.name} : ${cred.value} </p>`).join("")}
-            </div>
-            <p>
-            If you have any questions, please contact us at <a 
-             href="mailto:support@tradeverse.com " > support@tradeverse.com </a>
-            </p>
-            `
-        })
+    await sendEmail({
+      to: customer.email,
+      subject: "Your credential for the account you purchased",
+      html: `
+        <h2>Thank you for purchasing account @${listing.username} of ${listing.platform} platform</h2>
+        <p>Here are your credentials for the listing you purchased.</p>
 
+        <h3>New Credentials</h3>
+        <div>
+          ${credential.updatedCredential
+            .map((cred) => `<p>${cred.name} : ${cred.value}</p>`)
+            .join("")}
+        </div>
 
-    }
-)
+        <p>
+          If you have any questions, please contact us at
+          <a href="mailto:support@tradeverse.com">support@tradeverse.com</a>
+        </p>
+      `,
+    });
+  }
+);
 
 // inngest function to send new credential for deleted listings
 const sendNewCedentials = inngest.createFunction(
-    {id: 'send-new-credentials' },
-    {event: "app/listing-deleted"},
-    async ({ event }) =>{
-        const { listing, listingId} = event.data;
+  {
+    id: "send-new-credentials",
+    triggers: [{ event: "app/listing-deleted" }],
+  },
+  async ({ event }) => {
+    const { listing, listingId } = event.data;
 
-        const newCredential = await prisma.credential.findFirst({
+    const newCredential = await prisma.credential.findFirst({
+      where: { listingId },
+    });
 
-              where: { listingId},
+    if (newCredential) {
+      await sendEmail({
+        to: listing.owner.email,
+        subject: "New Credentials for your deleted listing",
+        html: `
+          <h2>Your new credentials for your deleted listing:</h2>
 
-        })
-        if(newCredential){
-            await sendEmail({
-                to: listing.owner.email,
-                subject: "New Credentials for your deleted listing ",
-                html:
-                    `
-                    <h2>Your new credentials for your deleted listing :</h2>
-                    title : ${listing.title}
-                    <br/>
-                    username : ${listing.username}
-                    <br/>
-                    platform : ${listing.platform}
-                    <br/>
-                    <h3> New Credentials </h3>
-                    <div>
-                      ${newCredential.updatedCredential.map((cred)=> ` <p> ${cred.name} : 
-                      ${cred.value} </p>`).join("")}
-                  </div>
-                  <h3>Old Credentials </h3>
-                  <div>
-                   ${newCredential.originalCredential.map((cred)=> ` <p> ${cred.name} : 
-                    ${cred.value} </p>`).join("")}
-                  </div>
+          title : ${listing.title}
+          <br/>
 
-                  <p>
-                If you have any questions, please contact us at <a 
-                href="mailto:support@tradeverse.com " > support@tradeverse.com </a>
-                 </p>
+          username : ${listing.username}
+          <br/>
 
+          platform : ${listing.platform}
+          <br/>
 
-                    `
-            })
-        }
+          <h3>New Credentials</h3>
+
+          <div>
+            ${newCredential.updatedCredential
+              .map((cred) => `<p>${cred.name} : ${cred.value}</p>`)
+              .join("")}
+          </div>
+
+          <h3>Old Credentials</h3>
+
+          <div>
+            ${newCredential.originalCredential
+              .map((cred) => `<p>${cred.name} : ${cred.value}</p>`)
+              .join("")}
+          </div>
+
+          <p>
+            If you have any questions, please contact us at
+            <a href="mailto:support@tradeverse.com">support@tradeverse.com</a>
+          </p>
+        `,
+      });
     }
-)
+  }
+);
 
 
 
