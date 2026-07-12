@@ -472,7 +472,7 @@ export const purchaseAccount = async (req, res) => {
             mode: 'payment',
             metadata: {
                 transactionId: transaction.id,
-                appId: "tradevarse",
+                appId: "tradeverse",
             },
             //  expires in 30 minutes
             expires_at: Math.floor(Date.now() / 1000) + 30 * 60,

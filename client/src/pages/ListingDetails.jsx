@@ -61,7 +61,7 @@ const purchaseAccount = async () => {
         toast.loading('creating payment link... ')
         const token = await getToken()
 
-        const { data} = await api.get(`/api/listing/purchase-account/${listing.id}`, {}, {
+        const { data} = await api.post(`/api/listing/purchase-account/${listing.id}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         } )
 
